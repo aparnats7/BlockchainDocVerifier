@@ -31,16 +31,13 @@ const Header: React.FC = () => {
               <Link 
                 key={item.href} 
                 href={item.href}
+                className={`px-1 py-2 text-sm font-medium ${
+                  location === item.href 
+                    ? 'text-primary-600 border-b-2 border-primary-600' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
-                <a 
-                  className={`px-1 py-2 text-sm font-medium ${
-                    location === item.href 
-                      ? 'text-primary-600 border-b-2 border-primary-600' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {item.label}
-                </a>
+                {item.label}
               </Link>
             ))}
           </nav>

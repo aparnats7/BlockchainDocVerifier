@@ -1,106 +1,84 @@
-import express from "express";
-import http from "http";
-import { log } from "./vite";
+import express, { Express, NextFunction, Request, Response } from "express";
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
+import { storage } from "./storage";
 import dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config();
 
-// Create a simple express server for quick startup
+// Create Express app
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-// Basic health check route
+// Add logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  
+  // Log API requests
+  if (path.startsWith("/api")) {
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`, "express");
+    });
+  }
+  
+  next();
+});
+
+// Add basic health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Home route
-app.get("/", (req, res) => {
-  res.send(`
-    <html>
-      <head>
-        <title>DocuChain Server</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-          }
-          .card {
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            background-color: #f9f9f9;
-          }
-          h1 {
-            color: #333;
-          }
-          pre {
-            background-color: #eee;
-            padding: 10px;
-            border-radius: 4px;
-            overflow-x: auto;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>DocuChain API Server</h1>
-        <div class="card">
-          <h2>Status: Running</h2>
-          <p>The server is running correctly.</p>
-          <p>Available endpoints:</p>
-          <ul>
-            <li><code>/api/health</code> - Health check endpoint</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h2>Full Application</h2>
-          <p>The full application server will be initialized in the background.</p>
-        </div>
-      </body>
-    </html>
-  `);
+// Add error handling
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("Server error:", err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ message });
 });
 
-// Start the server right away
-const server = http.createServer(app);
-const port = 5000;
-
-server.listen({
-  port,
-  host: "0.0.0.0",
-}, () => {
-  log(`Server started on port ${port}`);
-  
-  // Initialize the full application in the background
-  setTimeout(async () => {
-    try {
-      // Load necessary modules asynchronously
-      const { setupVite } = await import("./vite");
-      const { registerRoutes } = await import("./routes");
-      const { storage } = await import("./storage");
+async function startServer() {
+  try {
+    // Register API routes
+    const server = await registerRoutes(app);
+    
+    // Set up Vite for development or serve static files in production
+    if (process.env.NODE_ENV === "production") {
+      serveStatic(app);
+    } else {
+      await setupVite(app, server);
+    }
+    
+    // Start the server on port 5000 (important as it's not firewalled)
+    const port = 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+    }, () => {
+      log(`Server running on port ${port}`, "express");
       
-      log("Loading application routes...");
-      
-      // Initialize database in background
+      // Initialize database after server starts
       if ('initialize' in storage) {
         storage.initialize()
           .then(() => {
-            log("Database initialized successfully");
+            log("Database initialized successfully", "express");
           })
           .catch((error) => {
             console.error("Database initialization error:", error);
           });
       }
-      
-      // Setup vite for frontend
-      await setupVite(app, server);
-      
-      log("Application fully initialized");
-    } catch (error) {
-      console.error("Error initializing full application:", error);
-    }
-  }, 500);
-});
+    });
+    
+    return server;
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();
