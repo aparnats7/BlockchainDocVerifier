@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Download, Share, RefreshCw, Loader2, Check, Copy, X } from 'lucide-react';
+import { 
+  Eye, Download, Share, RefreshCw, Loader2, Check, Copy, X, Trash2, AlertTriangle 
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Document } from '@shared/schema';
 import { format } from 'date-fns';
@@ -15,16 +17,28 @@ import {
   DialogFooter,
   DialogDescription
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 
 interface DocumentCardProps {
   document: Document;
   onRetry?: (documentId: number) => void;
+  onDelete?: (documentId: number) => void;
 }
 
-const DocumentCard: React.FC<DocumentCardProps> = ({ document, onRetry }) => {
+const DocumentCard: React.FC<DocumentCardProps> = ({ document, onRetry, onDelete }) => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -209,6 +223,36 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onRetry }) => {
       });
     }
   };
+  
+  // Handle document delete action
+  const handleDeleteDocument = () => {
+    // Show confirmation dialog
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // Handle the confirmed deletion
+  const confirmDeleteDocument = async () => {
+    if (!onDelete) return;
+    
+    try {
+      // Call the onDelete callback function
+      onDelete(document.id);
+      
+      toast({
+        title: "Document deleted",
+        description: "The document has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast({
+        title: "Delete failed",
+        description: "Failed to delete document. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+    }
+  };
 
   return (
     <Card className="border border-gray-200 rounded-lg mb-4 last:mb-0 overflow-hidden">
@@ -312,6 +356,19 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onRetry }) => {
                 Try Again
               </Button>
             )}
+            
+            {/* Delete button - visible for all document types */}
+            {onDelete && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 text-red-600 hover:bg-red-50 hover:text-red-700 ml-auto"
+                onClick={handleDeleteDocument}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -399,6 +456,28 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onRetry }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete the document <strong>{documentTypeLabel}</strong>.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteDocument}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Document, documentTypes } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
 
 const Documents: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ['/api/documents'],
@@ -50,10 +52,53 @@ const Documents: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       
-      // Show toast notification (assuming toast is available)
-      console.log('Document verification retry initiated');
+      toast({
+        title: "Verification Restarted",
+        description: "Document verification has been restarted.",
+      });
     } catch (error) {
       console.error('Error retrying document verification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to restart verification. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Handle document deletion
+  const handleDelete = async (documentId: number) => {
+    console.log(`Deleting document ${documentId}`);
+    
+    try {
+      // Call the delete API endpoint
+      const response = await fetch(`/api/documents/${documentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+      
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      
+      toast({
+        title: "Document Deleted",
+        description: "The document has been permanently deleted.",
+      });
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete document. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -135,6 +180,7 @@ const Documents: React.FC = () => {
                     key={document.id} 
                     document={document} 
                     onRetry={handleRetry}
+                    onDelete={handleDelete}
                   />
                 ))
               )}

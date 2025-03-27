@@ -302,14 +302,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // const { getFromIpfs } = await import("./lib/ipfs");
       // const documentBuffer = await getFromIpfs(document.ipfsHash);
       
-      // For this demo, we'll create a sample image buffer
-      const sampleImageData = Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAJbSURBVDjLpZM9S5ZhFIev//Oc93m/H0pEBUFEa+jDpkBqMBoajIw+hJqMCoKGQOgPtERLYGs0RBA1NEhQS0M0GtTQZNBgSF8uWkGJr8/zvHlO5zGitlboTGe6zjnXOffhHGKM/M9aqe0CTvA/rInZGJkpI3QkpEiCSypUNHDjucVY9GvMvI2Cx7OGZzAScbpvMx1TJdQ9dZT2DFHJje0Xb9gRYoxoJkiwacnFAIR7w/uhiIW1Bb7/+srI/ijzZ+eRVMjSknhwq4FOI4xvH6O5q5mXCwtUnaYllSyE4PIFS7HiSZ9lanIKDYYt2aD6sS3p4Oe3Ku0bOrGVCq3tKVVvsJUK2lTA2sY6Tt9t4tPsJ+YfzFN0RcQb1tZWaUpKCIaXbxbxCnEGiQbJhRgjZnOCVCLrvNHGoUMkoxOcsVhv8QoWQSQ6ytWSb3/nsCJEA94LYhMkWpQPPuBCE0Eg5ghEorNoMjhrEetABFeziAQQwekiSeQCVqKgloBYQIRYM/wYfkRFhFgDDcPH+hzWJnipY0dSTa7mkEgVrIhVrBOkDj4lLGV8hUQT+fH+PVevXaEBUB2QDHiHcwWcFOhqzhKNYnQRrGD0Ns5myLUAYoC5F3Pc6r/D8OgQjUaCqEciWGux1uGKijOzQyQbW4iuRgzCr3eP+TAxiHQEbDGwOj3Nw4WXvLn/DK0bjGvQVJBixKpFMSip9nkQp7XPF4cebR1l9swVZu4+pLM5YV/vPiQmGDS+aFt6e0dY69pNaEtJsyLFCDZQzTVl6BO7F4cYPzNOEisbx8ZU+AXwZzNuqjf0uwAAAABJRU5ErkJggg==",
-        "base64"
-      );
+      // For this demo, we'll create a sample image with document details
+      // Create a more recognizable image based on the document type
+      let sampleImageData;
+      
+      if (document.documentType === 'aadhar') {
+        // Large Aadhar card sample image (512x300)
+        sampleImageData = Buffer.from(
+          "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAEsAgADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA",
+          "base64"
+        );
+      } else if (document.documentType === 'pan') {
+        // Large PAN card sample image (512x300)
+        sampleImageData = Buffer.from(
+          "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAEsAgADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9A6KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooo",
+          "base64"
+        );
+      } else if (document.documentType === 'driving_license') {
+        // Large driving license sample image (512x300)
+        sampleImageData = Buffer.from(
+          "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAEsAgADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAoorzz4vfGjwJ8BfDa+IvH3iay8N6Y8/2WGS6DSSXNwwJEMEMYaSVgASQoOACSQASAegUV8U3P8AwVl+A0WtCyh0fx7cWZB87UIdDRbQjoT5f2oXGPdkXnvXFfGj/grj8O/DXh9tP+Ful+IPGWvXKMtpO8A0ywtWJwJZJJSJXC5yViQhjgFwxIAPtiivyC+IX/BWT4y+Ir+WHwjb+G/B1grERSQ2/wBtvCCcZeWckAjGSkccZB5U8VU+GX/BWL42eHNRjXxZD4c8Z6eTmZZrNdPu",
+          "base64"
+        );
+      } else {
+        // Generic document image
+        sampleImageData = Buffer.from(
+          "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAQDAwQDAwQEAwQFBAQFBgoHBgYGBg0JCggKDw0QEA8NDw4RExgUERIXEg4PFRwVFxkZGxsbEBQdHx0aHxgaGxr/2wBDAQQFBQYFBgwHBwwaEQ8RGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhr/wAARCAEsAgADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKA",
+          "base64"
+        );
+      }
 
+      // Create a more detailed sample image showing document info
+      const { createCanvas } = await import('canvas');
+      const canvas = createCanvas(800, 500);
+      const ctx = canvas.getContext('2d');
+      
+      // Draw background
+      ctx.fillStyle = '#f5f5f5';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw document outline
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(50, 50, canvas.width - 100, canvas.height - 100);
+      ctx.strokeStyle = '#333333';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(50, 50, canvas.width - 100, canvas.height - 100);
+      
+      // Add header based on document type
+      ctx.fillStyle = '#1a365d';
+      ctx.fillRect(50, 50, canvas.width - 100, 80);
+      
+      // Header text
+      ctx.font = 'bold 32px Arial';
+      ctx.fillStyle = '#ffffff';
+      
+      let documentTitle = '';
+      switch(document.documentType) {
+        case 'aadhar':
+          documentTitle = 'AADHAR CARD';
+          break;
+        case 'pan':
+          documentTitle = 'PERMANENT ACCOUNT NUMBER CARD';
+          break;
+        case 'driving_license':
+          documentTitle = 'DRIVING LICENSE';
+          break;
+        default:
+          documentTitle = 'DOCUMENT';
+      }
+      
+      ctx.fillText(documentTitle, 70, 100);
+      
+      // Document ID
+      ctx.font = 'bold 24px Arial';
+      ctx.fillStyle = '#333333';
+      ctx.fillText(`Document ID: ${document.documentId}`, 70, 180);
+      
+      // Verification status
+      ctx.font = '20px Arial';
+      ctx.fillStyle = '#009900';
+      ctx.fillText('✓ VERIFIED ON BLOCKCHAIN', 70, 220);
+      
+      // Blockchain details
+      ctx.font = '16px Arial';
+      ctx.fillStyle = '#666666';
+      ctx.fillText(`Transaction ID: ${document.blockchainTxId || 'N/A'}`, 70, 260);
+      ctx.fillText(`Verified Date: ${new Date(document.verificationDate).toLocaleDateString()}`, 70, 290);
+      
+      // Add DocuChain watermark
+      ctx.font = 'italic 72px Arial';
+      ctx.fillStyle = 'rgba(200, 200, 200, 0.3)';
+      ctx.fillText('DocuChain', 150, 400);
+      
+      // Convert canvas to buffer and send
+      const imageBuffer = canvas.toBuffer('image/png');
+      
       res.set('Content-Type', 'image/png');
-      res.send(sampleImageData);
+      res.send(imageBuffer);
     } catch (error) {
       console.error("Error retrieving document for viewing:", error);
       res.status(500).json({ message: `Error retrieving document: ${error}` });
