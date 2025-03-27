@@ -24,10 +24,32 @@ const Dashboard: React.FC = () => {
       : documents
     : [];
 
-  const handleRetry = (documentId: number) => {
-    // In a real implementation, this would trigger a re-verification of the document
-    // For now, we'll just show a console message
+  const handleRetry = async (documentId: number) => {
     console.log(`Retry verification for document ${documentId}`);
+    
+    try {
+      // Call the retry API endpoint
+      const response = await fetch(`/api/documents/${documentId}/retry`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+      
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      
+      // Show toast notification (assuming toast is available)
+      console.log('Document verification retry initiated');
+    } catch (error) {
+      console.error('Error retrying document verification:', error);
+    }
   };
 
   const handleFilterChange = (newFilters: string[]) => {

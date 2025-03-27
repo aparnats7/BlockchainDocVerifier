@@ -204,6 +204,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Retry document verification
+  app.post("/api/documents/:id/retry", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid document ID" });
+      }
+
+      // Get the document
+      const document = await storage.getDocument(id);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Update document status to pending
+      await storage.updateDocument(id, {
+        status: "pending",
+        errorDetails: null
+      });
+
+      // Send immediate response
+      res.json({
+        message: "Document verification retry initiated",
+        documentId: id
+      });
+
+      // Perform verification in background
+      try {
+        // For the mock implementation, we'll simulate verification
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Random success/failure for testing
+        const isSuccess = Math.random() > 0.3; // 70% success rate
+        
+        if (isSuccess) {
+          // Generate mock verification data
+          const documentId = `DOC-${Math.floor(10000000 + Math.random() * 90000000)}`;
+          const ipfsHash = `ipfs-${Math.random().toString(36).substring(2, 15)}`;
+          
+          // Store on blockchain (mock)
+          const { storeOnBlockchain } = await import("./lib/blockchain");
+          const blockchainTxId = await storeOnBlockchain({
+            documentId,
+            documentType: document.documentType,
+            ipfsHash,
+            userId: document.userId || 1 // Default to user ID 1 if null
+          });
+          
+          // Update document with success status
+          await storage.updateDocument(id, {
+            status: "verified",
+            documentId,
+            ipfsHash,
+            blockchainTxId,
+            errorDetails: null
+          });
+        } else {
+          // Update document with failure status
+          await storage.updateDocument(id, {
+            status: "invalid",
+            errorDetails: "Document verification failed on retry. Please ensure document is clear and valid."
+          });
+        }
+      } catch (error) {
+        const processingError = error as Error;
+        console.error("Error in retry processing:", processingError);
+        
+        // Update document status to reflect error
+        try {
+          await storage.updateDocument(id, {
+            status: "error",
+            errorDetails: `Retry processing error: ${processingError.message}`
+          });
+        } catch (updateError) {
+          console.error("Failed to update document status after error:", updateError);
+        }
+      }
+    } catch (error) {
+      res.status(500).json({ message: `Error retrying document verification: ${error}` });
+    }
+  });
+
   // Get blockchain status
   app.get("/api/blockchain/status", (_req, res) => {
     res.json({

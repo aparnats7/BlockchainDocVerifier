@@ -6,12 +6,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Document, documentTypes } from '@shared/schema';
 
 const Documents: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const queryClient = useQueryClient();
   
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ['/api/documents'],
@@ -28,8 +29,32 @@ const Documents: React.FC = () => {
       })
     : [];
 
-  const handleRetry = (documentId: number) => {
+  const handleRetry = async (documentId: number) => {
     console.log(`Retry verification for document ${documentId}`);
+    
+    try {
+      // Call the retry API endpoint
+      const response = await fetch(`/api/documents/${documentId}/retry`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+      
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      
+      // Show toast notification (assuming toast is available)
+      console.log('Document verification retry initiated');
+    } catch (error) {
+      console.error('Error retrying document verification:', error);
+    }
   };
 
   return (
