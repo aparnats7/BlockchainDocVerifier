@@ -47,7 +47,7 @@ export async function storeOnBlockchain(documentData: {
     await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate transaction time
     
     // Generate a realistic Ethereum transaction hash
-    const txHash = "0x";
+    let txHash = "0x";
     const characters = "0123456789abcdef";
     for (let i = 0; i < 64; i++) {
       txHash += characters.charAt(Math.floor(Math.random() * characters.length));

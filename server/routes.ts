@@ -123,46 +123,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         documentId: pendingDocument.id,
       });
 
-      // Process the document with AI
-      // Lazily import these to speed up server startup
-      const { processAndVerifyDocument } = await import("./lib/documentAi");
-      const verificationResult = await processAndVerifyDocument(filePath, documentType);
-      
-      // If document is valid, store it on IPFS and blockchain
-      if (verificationResult.isValid) {
-        // Upload document to IPFS
-        const { uploadToIpfs } = await import("./lib/ipfs");
-        const ipfsHash = await uploadToIpfs(filePath);
+      // Process the document asynchronously after sending the response
+      // Use a nested try-catch to handle errors without trying to send another response
+      try {
+        // Process the document with AI
+        // Lazily import these to speed up server startup
+        const { processAndVerifyDocument } = await import("./lib/documentAi");
+        const verificationResult = await processAndVerifyDocument(filePath, documentType);
         
-        // Store reference on blockchain
-        const { storeOnBlockchain } = await import("./lib/blockchain");
-        const blockchainTxId = await storeOnBlockchain({
-          documentId: verificationResult.documentId!,
-          documentType,
-          ipfsHash,
-          userId,
-        });
+        // If document is valid, store it on IPFS and blockchain
+        if (verificationResult.isValid) {
+          // Upload document to IPFS
+          const { uploadToIpfs } = await import("./lib/ipfs");
+          const ipfsHash = await uploadToIpfs(filePath);
+          
+          // Store reference on blockchain
+          const { storeOnBlockchain } = await import("./lib/blockchain");
+          const blockchainTxId = await storeOnBlockchain({
+            documentId: verificationResult.documentId!,
+            documentType,
+            ipfsHash,
+            userId,
+          });
+          
+          // Update document with verification results
+          await storage.updateDocument(pendingDocument.id, {
+            documentId: verificationResult.documentId!,
+            status: "verified",
+            ipfsHash,
+            blockchainTxId,
+          });
+        } else {
+          // Update document with error details
+          await storage.updateDocument(pendingDocument.id, {
+            status: "invalid",
+            errorDetails: verificationResult.errorDetails,
+          });
+        }
+      } catch (processingError) {
+        // Log the error but don't try to send another response
+        console.error("Error in background processing:", processingError);
         
-        // Update document with verification results
-        await storage.updateDocument(pendingDocument.id, {
-          documentId: verificationResult.documentId!,
-          status: "verified",
-          ipfsHash,
-          blockchainTxId,
-        });
-      } else {
-        // Update document with error details
-        await storage.updateDocument(pendingDocument.id, {
-          status: "invalid",
-          errorDetails: verificationResult.errorDetails,
+        // Update document status to reflect the error
+        try {
+          await storage.updateDocument(pendingDocument.id, {
+            status: "error",
+            errorDetails: `Processing error: ${processingError.message}`,
+          });
+        } catch (updateError) {
+          console.error("Failed to update document status after error:", updateError);
+        }
+      } finally {
+        // Clean up the temporary file regardless of success or failure
+        fs.unlink(filePath, (err) => {
+          if (err) console.error("Error deleting temporary file:", err);
         });
       }
-
-      // Clean up the temporary file
-      fs.unlink(filePath, (err) => {
-        if (err) console.error("Error deleting temporary file:", err);
-      });
     } catch (error) {
+      // This only catches errors that happen before we send the response
       res.status(500).json({ message: `Error processing document: ${error}` });
     }
   });
