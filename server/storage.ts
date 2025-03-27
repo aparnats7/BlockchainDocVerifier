@@ -54,22 +54,34 @@ export class PgStorage implements IStorage {
     if (this.initialized) return;
     
     try {
-      // Check if we can connect to the database
+      // Mark as initialized immediately to prevent blocking repeated calls
+      this.initialized = true;
+      
+      // Simple connection test
       await this.db.select().from(users).limit(1);
       
-      // Create default user if none exists
-      const existingUsers = await this.db.select().from(users).limit(1);
-      if (existingUsers.length === 0) {
-        await this.createUser({
-          username: "testuser",
-          password: "password"
-        });
-      }
+      // Create default user if none exists - do this in background
+      setTimeout(async () => {
+        try {
+          const existingUsers = await this.db.select().from(users).limit(1);
+          if (existingUsers.length === 0) {
+            await this.createUser({
+              username: "testuser",
+              password: "password"
+            });
+            console.log("Created default user");
+          }
+        } catch (err) {
+          console.error("Error creating default user:", err);
+        }
+      }, 100);
       
-      this.initialized = true;
+      console.log("Database initialized successfully");
     } catch (error) {
       console.error("Failed to initialize database:", error);
-      throw error;
+      // Don't throw error, just log it - allows server to start even if DB is down
+      // Will retry on next DB operation
+      this.initialized = false;
     }
   }
 

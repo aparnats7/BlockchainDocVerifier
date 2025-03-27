@@ -3,9 +3,6 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { insertDocumentSchema } from "@shared/schema";
-import { processAndVerifyDocument } from "./lib/documentAi";
-import { uploadToIpfs } from "./lib/ipfs";
-import { storeOnBlockchain } from "./lib/blockchain";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -127,14 +124,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Process the document with AI
+      // Lazily import these to speed up server startup
+      const { processAndVerifyDocument } = await import("./lib/documentAi");
       const verificationResult = await processAndVerifyDocument(filePath, documentType);
       
       // If document is valid, store it on IPFS and blockchain
       if (verificationResult.isValid) {
         // Upload document to IPFS
+        const { uploadToIpfs } = await import("./lib/ipfs");
         const ipfsHash = await uploadToIpfs(filePath);
         
         // Store reference on blockchain
+        const { storeOnBlockchain } = await import("./lib/blockchain");
         const blockchainTxId = await storeOnBlockchain({
           documentId: verificationResult.documentId!,
           documentType,
