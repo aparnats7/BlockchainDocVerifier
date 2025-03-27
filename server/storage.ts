@@ -1,44 +1,55 @@
-import { users, documents, type User, type InsertUser, type Document, type InsertDocument } from "@shared/schema";
-
-// modify the interface with any CRUD methods
-// you might need
+import { 
+  users, 
+  documents, 
+  type User, 
+  type InsertUser,
+  type Document,
+  type InsertDocument,
+  type DocumentType
+} from "@shared/schema";
 
 export interface IStorage {
-  // User methods
+  // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
-  // Document methods
+  // Document operations
   getDocuments(userId: number): Promise<Document[]>;
+  getDocumentsByType(userId: number, documentType: DocumentType): Promise<Document[]>;
   getDocument(id: number): Promise<Document | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
-  updateDocumentStatus(id: number, status: string): Promise<Document | undefined>;
+  updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document | undefined>;
   deleteDocument(id: number): Promise<boolean>;
+  
+  // Stats
+  getDocumentStats(userId: number): Promise<{
+    verifiedCount: number;
+    pendingFailedCount: number;
+    storageUsed: number;
+  }>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private documents: Map<number, Document>;
-  userCurrentId: number;
-  documentCurrentId: number;
+  private currentUserId: number;
+  private currentDocumentId: number;
 
   constructor() {
     this.users = new Map();
     this.documents = new Map();
-    this.userCurrentId = 1;
-    this.documentCurrentId = 1;
+    this.currentUserId = 1;
+    this.currentDocumentId = 1;
     
-    // Add a demo user
+    // Create a default user
     this.createUser({
-      username: "demo",
-      password: "password",
-      fullName: "Demo User",
-      email: "demo@example.com"
+      username: "testuser",
+      password: "password"
     });
   }
 
-  // User methods
+  // User operations
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -50,64 +61,76 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userCurrentId++;
-    const now = new Date();
-    const user: User = { ...insertUser, id, createdAt: now };
+    const id = this.currentUserId++;
+    const user: User = { ...insertUser, id };
     this.users.set(id, user);
     return user;
   }
-  
-  // Document methods
+
+  // Document operations
   async getDocuments(userId: number): Promise<Document[]> {
     return Array.from(this.documents.values()).filter(
-      doc => doc.userId === userId
+      (document) => document.userId === userId
     );
   }
-  
+
+  async getDocumentsByType(userId: number, documentType: DocumentType): Promise<Document[]> {
+    return Array.from(this.documents.values()).filter(
+      (document) => document.userId === userId && document.documentType === documentType
+    );
+  }
+
   async getDocument(id: number): Promise<Document | undefined> {
     return this.documents.get(id);
   }
-  
+
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
-    const id = this.documentCurrentId++;
-    const now = new Date();
-    
-    // Ensure all properties are correctly typed
-    const document: Document = {
-      id,
-      userId: insertDocument.userId,
-      documentType: insertDocument.documentType,
-      documentName: insertDocument.documentName,
-      documentNumber: insertDocument.documentNumber || null,
-      ipfsHash: insertDocument.ipfsHash,
-      blockchainRef: insertDocument.blockchainRef || null,
-      thumbnailIpfsHash: insertDocument.thumbnailIpfsHash || null,
-      verificationStatus: insertDocument.verificationStatus,
-      verificationDetails: insertDocument.verificationDetails || null,
-      createdAt: now,
-      updatedAt: now
-    };
-    
+    const id = this.currentDocumentId++;
+    const verificationDate = new Date();
+    const document: Document = { ...insertDocument, id, verificationDate };
     this.documents.set(id, document);
     return document;
   }
-  
-  async updateDocumentStatus(id: number, status: string): Promise<Document | undefined> {
+
+  async updateDocument(id: number, documentUpdate: Partial<InsertDocument>): Promise<Document | undefined> {
     const document = this.documents.get(id);
     if (!document) return undefined;
     
-    const updated: Document = {
-      ...document,
-      verificationStatus: status,
-      updatedAt: new Date()
-    };
-    
-    this.documents.set(id, updated);
-    return updated;
+    const updatedDocument = { ...document, ...documentUpdate };
+    this.documents.set(id, updatedDocument);
+    return updatedDocument;
   }
-  
+
   async deleteDocument(id: number): Promise<boolean> {
     return this.documents.delete(id);
+  }
+
+  // Stats
+  async getDocumentStats(userId: number): Promise<{
+    verifiedCount: number;
+    pendingFailedCount: number;
+    storageUsed: number;
+  }> {
+    const userDocuments = Array.from(this.documents.values()).filter(
+      (document) => document.userId === userId
+    );
+    
+    const verifiedCount = userDocuments.filter(
+      (document) => document.status === "verified"
+    ).length;
+    
+    const pendingFailedCount = userDocuments.filter(
+      (document) => document.status === "invalid" || document.status === "pending"
+    ).length;
+    
+    // Mock storage calculation (in MB)
+    const storageUsed = userDocuments.length * 5; // assuming each document uses 5MB
+    
+    return {
+      verifiedCount,
+      pendingFailedCount,
+      storageUsed
+    };
   }
 }
 
