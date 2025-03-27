@@ -105,8 +105,22 @@ const DocumentUpload: React.FC = () => {
     }
   };
 
+  // Track whether component is mounted
+  const isMountedRef = useRef(true);
+  
+  // Add cleanup effect
+  React.useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+  
   const pollDocumentStatus = async (documentId: number) => {
+    // Check if component is still mounted
+    if (!isMountedRef.current) return;
+    
     try {
+      console.log(`Polling status for document ID: ${documentId}`);
       const response = await fetch(`/api/documents/${documentId}`, {
         credentials: 'include',
       });
@@ -116,24 +130,37 @@ const DocumentUpload: React.FC = () => {
       }
       
       const document = await response.json();
+      console.log(`Document status: ${document.status}`, document);
+      
+      // Prevent state updates if component unmounted
+      if (!isMountedRef.current) return;
       
       if (document.status === 'pending') {
         // Keep polling every 2 seconds
-        setTimeout(() => pollDocumentStatus(documentId), 2000);
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            pollDocumentStatus(documentId);
+          }
+        }, 2000);
       } else if (document.status === 'verified') {
+        console.log('Document verified successfully');
         queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
         queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
         setVerificationState('success');
-      } else if (document.status === 'invalid') {
+      } else if (document.status === 'invalid' || document.status === 'error') {
+        console.log('Document verification failed');
         queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
         queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
         setVerificationState('failed');
         setErrorDetails(document.errorDetails || 'Document verification failed');
       }
     } catch (error) {
-      console.error('Error polling document status:', error);
-      setVerificationState('failed');
-      setErrorDetails('Failed to check document status');
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        console.error('Error polling document status:', error);
+        setVerificationState('failed');
+        setErrorDetails('Failed to check document status');
+      }
     }
   };
 
@@ -225,8 +252,14 @@ const DocumentUpload: React.FC = () => {
           
           <div className="mt-6 flex justify-end">
             <Button 
-              disabled={!documentType || cameraActive}
-              onClick={() => fileInputRef.current?.click()}
+              disabled={!documentType || cameraActive || uploadMethod === null}
+              onClick={() => {
+                // If camera is selected and active, capture photo
+                if (uploadMethod === 'camera' && webcamRef.current) {
+                  capturePhoto();
+                } 
+                // We don't need an else case for file upload - it's handled by handleFileChange
+              }}
             >
               Verify Document
             </Button>
@@ -249,7 +282,8 @@ const DocumentUpload: React.FC = () => {
       <VerificationFailedModal 
         isOpen={verificationState === 'failed'} 
         onClose={resetState}
-        errorDetails={errorDetails} 
+        errorDetails={errorDetails}
+        documentId={currentDocumentId}
       />
     </>
   );

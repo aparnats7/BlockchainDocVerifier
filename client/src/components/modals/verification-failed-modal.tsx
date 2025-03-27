@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -6,19 +6,27 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
 interface VerificationFailedModalProps {
   isOpen: boolean;
   onClose: () => void;
   errorDetails: string | null;
+  documentId?: number | null;
 }
 
 const VerificationFailedModal: React.FC<VerificationFailedModalProps> = ({
   isOpen,
   onClose,
-  errorDetails
+  errorDetails,
+  documentId
 }) => {
+  const [isRetrying, setIsRetrying] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   // Parse error details to show specific issues
   const getErrorList = () => {
     if (!errorDetails) return ['Document verification failed'];
@@ -31,6 +39,55 @@ const VerificationFailedModal: React.FC<VerificationFailedModalProps> = ({
   };
 
   const errorList = getErrorList();
+
+  const handleRetry = async () => {
+    if (!documentId) {
+      toast({
+        title: "Error",
+        description: "Document ID not found. Please upload a new document.",
+        variant: "destructive"
+      });
+      onClose();
+      return;
+    }
+
+    setIsRetrying(true);
+    try {
+      const response = await fetch(`/api/documents/${documentId}/retry`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      // Successfully initiated retry
+      toast({
+        title: "Verification Retry",
+        description: "Document verification retry has been initiated. Please wait..."
+      });
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      
+      // Close the modal and let the parent component handle the status polling
+      onClose();
+    } catch (error) {
+      console.error('Error retrying verification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to retry document verification. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -65,8 +122,19 @@ const VerificationFailedModal: React.FC<VerificationFailedModalProps> = ({
         </div>
         
         <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-          <Button onClick={onClose} className="w-full sm:w-auto sm:ml-3">
-            Try Again
+          <Button 
+            onClick={handleRetry} 
+            className="w-full sm:w-auto sm:ml-3"
+            disabled={isRetrying || !documentId}
+          >
+            {isRetrying ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Retrying...
+              </>
+            ) : (
+              "Try Again"
+            )}
           </Button>
           <Button variant="outline" onClick={onClose} className="mt-3 sm:mt-0 w-full sm:w-auto">
             Close
