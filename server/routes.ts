@@ -160,8 +160,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             errorDetails: verificationResult.errorDetails,
           });
         }
-      } catch (processingError) {
+      } catch (error) {
         // Log the error but don't try to send another response
+        const processingError = error as Error;
         console.error("Error in background processing:", processingError);
         
         // Update document status to reflect the error
@@ -235,38 +236,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For the mock implementation, we'll simulate verification
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Random success/failure for testing
-        const isSuccess = Math.random() > 0.3; // 70% success rate
+        // Always succeed for testing purposes
+        console.log("Retry verification - forcing success for testing");
         
-        if (isSuccess) {
-          // Generate mock verification data
-          const documentId = `DOC-${Math.floor(10000000 + Math.random() * 90000000)}`;
-          const ipfsHash = `ipfs-${Math.random().toString(36).substring(2, 15)}`;
-          
-          // Store on blockchain (mock)
-          const { storeOnBlockchain } = await import("./lib/blockchain");
-          const blockchainTxId = await storeOnBlockchain({
-            documentId,
-            documentType: document.documentType,
-            ipfsHash,
-            userId: document.userId || 1 // Default to user ID 1 if null
-          });
-          
-          // Update document with success status
-          await storage.updateDocument(id, {
-            status: "verified",
-            documentId,
-            ipfsHash,
-            blockchainTxId,
-            errorDetails: null
-          });
-        } else {
-          // Update document with failure status
-          await storage.updateDocument(id, {
-            status: "invalid",
-            errorDetails: "Document verification failed on retry. Please ensure document is clear and valid."
-          });
-        }
+        // Generate mock verification data
+        const documentId = `DOC-${Math.floor(10000000 + Math.random() * 90000000)}`;
+        const ipfsHash = `ipfs-${Math.random().toString(36).substring(2, 15)}`;
+        
+        // Store on blockchain (mock)
+        const { storeOnBlockchain } = await import("./lib/blockchain");
+        const blockchainTxId = await storeOnBlockchain({
+          documentId,
+          documentType: document.documentType,
+          ipfsHash,
+          userId: document.userId || 1 // Default to user ID 1 if null
+        });
+        
+        // Update document with success status
+        await storage.updateDocument(id, {
+          status: "verified",
+          documentId,
+          ipfsHash,
+          blockchainTxId,
+          errorDetails: null
+        });
+        
+        console.log(`Document ${id} successfully verified after retry`);
       } catch (error) {
         const processingError = error as Error;
         console.error("Error in retry processing:", processingError);
