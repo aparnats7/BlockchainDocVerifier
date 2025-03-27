@@ -1,5 +1,10 @@
 import React from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 
@@ -30,28 +35,24 @@ const VerificationFailedModal: React.FC<VerificationFailedModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
-        <div className="sm:flex sm:items-start">
+        <DialogTitle className="text-lg font-medium">Document Verification Failed</DialogTitle>
+        <DialogDescription>
+          We couldn't verify your document due to the following issues:
+        </DialogDescription>
+        
+        <div className="sm:flex sm:items-start pt-4">
           <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
             <AlertTriangle className="h-6 w-6 text-red-600" />
           </div>
-          <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Document Verification Failed
-            </h3>
-            <div className="mt-2">
-              <p className="text-sm text-gray-500">
-                We couldn't verify your document due to the following issues:
-              </p>
+          <div className="mt-3 sm:mt-0 sm:ml-4">
+            <div className="mt-4">
+              <ul className="list-disc pl-5 space-y-1">
+                {errorList.map((error, index) => (
+                  <li key={index} className="text-sm text-red-600">{error}</li>
+                ))}
+              </ul>
             </div>
           </div>
-        </div>
-        
-        <div className="mt-4">
-          <ul className="list-disc pl-5 space-y-1">
-            {errorList.map((error, index) => (
-              <li key={index} className="text-sm text-red-600">{error}</li>
-            ))}
-          </ul>
         </div>
         
         <div className="mt-5 bg-gray-50 p-4 rounded-lg">
