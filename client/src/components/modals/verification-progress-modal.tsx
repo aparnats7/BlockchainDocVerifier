@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogTitle,
+  DialogHeader,
+  DialogDescription 
+} from '@/components/ui/dialog';
 import { Loader2, Check } from 'lucide-react';
 import { VerificationProgress, VerificationStep } from '@/types';
 
@@ -62,17 +68,16 @@ const VerificationProgressModal: React.FC<VerificationProgressModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Verifying Document</DialogTitle>
+          <DialogDescription>
+            Our AI system is analyzing your document. This may take a few moments.
+          </DialogDescription>
+        </DialogHeader>
+        
         <div className="text-center">
           <div className="mx-auto flex items-center justify-center h-12 w-12">
             <Loader2 className="h-10 w-10 text-primary-600 animate-spin" />
-          </div>
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">
-            Verifying Document
-          </h3>
-          <div className="mt-2">
-            <p className="text-sm text-gray-500">
-              Our AI system is analyzing your document. This may take a few moments.
-            </p>
           </div>
         </div>
         

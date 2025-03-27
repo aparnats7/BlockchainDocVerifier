@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogTitle,
+  DialogHeader
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -39,6 +44,9 @@ const VerificationSuccessModal: React.FC<VerificationSuccessModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="sr-only">Document Verification Success</DialogTitle>
+        </DialogHeader>
         <div className="sm:flex sm:items-start">
           <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
             <CheckCircle className="h-6 w-6 text-green-600" />
