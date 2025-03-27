@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Download, Share, RefreshCw } from 'lucide-react';
+import { Eye, Download, Share, RefreshCw, Loader2, Check, Copy, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Document } from '@shared/schema';
 import { format } from 'date-fns';
 import { documentTypes } from '@shared/schema';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface DocumentCardProps {
   document: Document;
@@ -14,6 +23,13 @@ interface DocumentCardProps {
 }
 
 const DocumentCard: React.FC<DocumentCardProps> = ({ document, onRetry }) => {
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const { toast } = useToast();
+  
   const documentTypeLabel = documentTypes.find(type => type.value === document.documentType)?.label || document.documentType;
   const formattedDate = format(new Date(document.verificationDate), 'MMM dd, yyyy');
 
@@ -95,6 +111,104 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onRetry }) => {
         );
     }
   };
+  
+  // Handle document view action
+  const handleViewDocument = () => {
+    if (document.status !== 'verified') {
+      toast({
+        title: "Document not verified",
+        description: "Only verified documents can be viewed.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsViewDialogOpen(true);
+  };
+  
+  // Handle document download action
+  const handleDownloadDocument = () => {
+    if (document.status !== 'verified') {
+      toast({
+        title: "Document not verified",
+        description: "Only verified documents can be downloaded.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create a direct download link
+    const downloadUrl = `/api/documents/${document.id}/download`;
+    const link = window.document.createElement('a');
+    link.href = downloadUrl;
+    // The download attribute tells the browser to download the file instead of navigating to it
+    link.download = `${document.documentType}_${document.documentId}.png`;
+    window.document.body.appendChild(link);
+    link.click();
+    window.document.body.removeChild(link);
+  };
+  
+  // Handle document share action
+  const handleShareDocument = async () => {
+    if (document.status !== 'verified') {
+      toast({
+        title: "Document not verified",
+        description: "Only verified documents can be shared.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    setIsShareDialogOpen(true);
+    
+    try {
+      const response = await fetch(`/api/documents/${document.id}/share`);
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setShareLink(data.shareLink);
+    } catch (error) {
+      console.error('Error generating share link:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate share link. Please try again.",
+        variant: "destructive"
+      });
+      setIsShareDialogOpen(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Handle copy share link to clipboard
+  const handleCopyShareLink = async () => {
+    if (!shareLink) return;
+    
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setCopySuccess(true);
+      
+      setTimeout(() => {
+        setCopySuccess(false);
+      }, 2000);
+      
+      toast({
+        title: "Link copied",
+        description: "The shareable link has been copied to your clipboard.",
+      });
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy link to clipboard. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <Card className="border border-gray-200 rounded-lg mb-4 last:mb-0 overflow-hidden">
@@ -155,18 +269,33 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onRetry }) => {
           )}
           
           <div className="mt-4 flex space-x-2">
-            <Button variant="outline" size="sm" className="h-8">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8"
+              onClick={handleViewDocument}
+            >
               <Eye className="h-4 w-4 mr-1" />
               View
             </Button>
             
             {document.status === 'verified' && (
               <>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8"
+                  onClick={handleDownloadDocument}
+                >
                   <Download className="h-4 w-4 mr-1" />
                   Download
                 </Button>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8"
+                  onClick={handleShareDocument}
+                >
                   <Share className="h-4 w-4 mr-1" />
                   Share
                 </Button>
@@ -186,6 +315,90 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onRetry }) => {
           </div>
         </div>
       </div>
+      
+      {/* View document dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{documentTypeLabel}</DialogTitle>
+            <DialogDescription>
+              Document ID: {document.documentId}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {document.status === 'verified' && (
+            <div className="mt-2 border rounded-lg overflow-hidden">
+              <img 
+                src={`/api/documents/${document.id}/view`} 
+                alt={`${documentTypeLabel} document`}
+                className="w-full h-auto"
+              />
+            </div>
+          )}
+          
+          <DialogFooter className="mt-4">
+            <Button onClick={handleDownloadDocument}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Share document dialog */}
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share Document</DialogTitle>
+            <DialogDescription>
+              Create a shareable link for {documentTypeLabel}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Generating share link...</span>
+            </div>
+          ) : shareLink ? (
+            <div className="mt-4">
+              <div className="flex items-center space-x-2">
+                <div className="border rounded-lg p-3 bg-gray-50 flex-1 truncate">
+                  {shareLink}
+                </div>
+                <Button 
+                  size="sm" 
+                  className="flex-shrink-0" 
+                  onClick={handleCopyShareLink}
+                >
+                  {copySuccess ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                This link will expire in 24 hours. Anyone with the link can view the document.
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-8 text-red-600">
+              <X className="h-6 w-6 mr-2" />
+              <span>Failed to generate share link. Please try again.</span>
+            </div>
+          )}
+          
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setIsShareDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

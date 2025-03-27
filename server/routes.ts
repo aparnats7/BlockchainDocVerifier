@@ -281,6 +281,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get document content (for viewing)
+  app.get("/api/documents/:id/view", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid document ID" });
+      }
+
+      const document = await storage.getDocument(id);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      if (document.status !== "verified") {
+        return res.status(400).json({ message: "Document is not verified" });
+      }
+
+      // For a real app, we would fetch this from IPFS using the document's ipfsHash
+      // const { getFromIpfs } = await import("./lib/ipfs");
+      // const documentBuffer = await getFromIpfs(document.ipfsHash);
+      
+      // For this demo, we'll create a sample image buffer
+      const sampleImageData = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAJbSURBVDjLpZM9S5ZhFIev//Oc93m/H0pEBUFEa+jDpkBqMBoajIw+hJqMCoKGQOgPtERLYGs0RBA1NEhQS0M0GtTQZNBgSF8uWkGJr8/zvHlO5zGitlboTGe6zjnXOffhHGKM/M9aqe0CTvA/rInZGJkpI3QkpEiCSypUNHDjucVY9GvMvI2Cx7OGZzAScbpvMx1TJdQ9dZT2DFHJje0Xb9gRYoxoJkiwacnFAIR7w/uhiIW1Bb7/+srI/ijzZ+eRVMjSknhwq4FOI4xvH6O5q5mXCwtUnaYllSyE4PIFS7HiSZ9lanIKDYYt2aD6sS3p4Oe3Ku0bOrGVCq3tKVVvsJUK2lTA2sY6Tt9t4tPsJ+YfzFN0RcQb1tZWaUpKCIaXbxbxCnEGiQbJhRgjZnOCVCLrvNHGoUMkoxOcsVhv8QoWQSQ6ytWSb3/nsCJEA94LYhMkWpQPPuBCE0Eg5ghEorNoMjhrEetABFeziAQQwekiSeQCVqKgloBYQIRYM/wYfkRFhFgDDcPH+hzWJnipY0dSTa7mkEgVrIhVrBOkDj4lLGV8hUQT+fH+PVevXaEBUB2QDHiHcwWcFOhqzhKNYnQRrGD0Ns5myLUAYoC5F3Pc6r/D8OgQjUaCqEciWGux1uGKijOzQyQbW4iuRgzCr3eP+TAxiHQEbDGwOj3Nw4WXvLn/DK0bjGvQVJBixKpFMSip9nkQp7XPF4cebR1l9swVZu4+pLM5YV/vPiQmGDS+aFt6e0dY69pNaEtJsyLFCDZQzTVl6BO7F4cYPzNOEisbx8ZU+AXwZzNuqjf0uwAAAABJRU5ErkJggg==",
+        "base64"
+      );
+
+      res.set('Content-Type', 'image/png');
+      res.send(sampleImageData);
+    } catch (error) {
+      console.error("Error retrieving document for viewing:", error);
+      res.status(500).json({ message: `Error retrieving document: ${error}` });
+    }
+  });
+
+  // Download document
+  app.get("/api/documents/:id/download", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid document ID" });
+      }
+
+      const document = await storage.getDocument(id);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      if (document.status !== "verified") {
+        return res.status(400).json({ message: "Document is not verified" });
+      }
+
+      // For a real app, we would fetch this from IPFS using the document's ipfsHash
+      // const { getFromIpfs } = await import("./lib/ipfs");
+      // const documentBuffer = await getFromIpfs(document.ipfsHash);
+      
+      // For this demo, we'll create a sample image buffer
+      const sampleImageData = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAJbSURBVDjLpZM9S5ZhFIev//Oc93m/H0pEBUFEa+jDpkBqMBoajIw+hJqMCoKGQOgPtEVTQZNBgSF9uWkGJr8/zvHlO5zGitlboTGe6zjnXOffhHGKM/M9aqe0CTvA/rInZGJkpI3QkpEiCSypUNHDjucVY9GvMvI2Cx7OGZzAScbpvMx1TJdQ9dZT2DFHJje0Xb9gRYoxoJkiwacnFAIR7w/uhiIW1Bb7/+srI/ijzZ+eRVMjSknhwq4FOI4xvH6O5q5mXCwtUnaYllSyE4PIFS7HiSZ9lanIKDYYt2aD6sS3p4Oe3Ku0bOrGVCq3tKVVvsJUK2lTA2sY6Tt9t4tPsJ+YfzFN0RcQb1tZWaUpKCIaXbxbxCnEGiQbJhRgjZnOCVCLrvNHGoUMkoxOcsVhv8QoWQSQ6ytWSb3/nsCJEA94LYhMkWpQPPuBCE0Eg5ghEorNoMjhrEetABFeziAQQwekiSeQCVqKgloBYQIRYM/wYfkRFhFgDDcPH+hzWJnipY0dSTa7mkEgVrIhVrBOkDj4lLGV8hUQT+fH+PVevXaEBUB2QDHiHcwWcFOhqzhKNYnQRrGD0Ns5myLUAYoC5F3Pc6r/D8OgQjUaCqEciWGux1uGKijOzQyQbW4iuRgzCr3eP+TAxiHQEbDGwOj3Nw4WXvLn/DK0bjGvQVJBixKpFMSip9nkQp7XPF4cebR1l9swVZu4+pLM5YV/vPiQmGDS+aFt6e0dY69pNaEtJsyLFCDZQzTVl6BO7F4cYPzNOEisbx8ZU+AXwZzNuqjf0uwAAAABJRU5ErkJggg==",
+        "base64"
+      );
+
+      // Set filename based on document type and ID
+      const documentTypeName = document.documentType.charAt(0).toUpperCase() + document.documentType.slice(1).replace('_', ' ');
+      const filename = `${documentTypeName}_${document.documentId}.png`;
+      
+      res.set({
+        'Content-Type': 'image/png',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      });
+      
+      res.send(sampleImageData);
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      res.status(500).json({ message: `Error downloading document: ${error}` });
+    }
+  });
+
+  // Generate share link for document
+  app.get("/api/documents/:id/share", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid document ID" });
+      }
+
+      const document = await storage.getDocument(id);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      if (document.status !== "verified") {
+        return res.status(400).json({ message: "Only verified documents can be shared" });
+      }
+
+      // Generate a shareable link
+      // In a real app, this would create a unique, temporary, and secure link
+      const shareableLink = `${req.protocol}://${req.get('host')}/shared/${document.id}/${document.documentId.replace(/\s+/g, '_')}`;
+      
+      res.json({
+        shareLink: shareableLink,
+        expiresIn: "24 hours"
+      });
+    } catch (error) {
+      console.error("Error generating share link:", error);
+      res.status(500).json({ message: `Error generating share link: ${error}` });
+    }
+  });
+
   // Get blockchain status
   app.get("/api/blockchain/status", (_req, res) => {
     res.json({
